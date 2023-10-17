@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ESCape32 Wi-Fi Link</title>
+<style>
+body {
+	font-family: -apple-system, "Trebuchet MS", Helvetica, Arial, sans-serif;
+	font-size: 1em;
+	line-height: 1.4em;
+	color: #222;
+	margin: 0;
+	padding: 0;
+}
+#main {
+	padding: 0.4em;
+	margin: 0 auto;
+}
+p {
+	margin: 0.5em 0 0 0;
+}
+b {
+	border: 1px solid #ccc;
+	border-radius: 2px;
+	background: #eee;
+	padding: 0.1em 0.2em;
+	color: #e20;
+}
+hr {
+	background: none;
+	border: medium none;
+	border-bottom: 1px solid #ddd;
+	margin: 0.8em 0 0.6em 0;
+}
+label {
+	white-space: nowrap;
+}
+button, input, select, textarea {
+	border: 1px solid #ccc;
+	background: #eee;
+	font-size: 1em;
+	padding: 0.2em 0.4em;
+	cursor: pointer;
+	transition: 0.2s;
+}
+button:hover {
+	background: #ddd;
+}
+button:active {
+	background: #ccc;
+}
+#menu {
+	border: 1px solid #ccc;
+	background: #eee;
+	overflow: hidden;
+}
+#menu button {
+	float: left;
+	border: none;
+	padding: 1em;
+}
+#menu button.active {
+	background: #26d;
+	color: #fff;
+}
+.tab {
+	border: 1px solid #ccc;
+	border-top: none;
+	overflow: hidden;
+	display: none;
+	padding: 0.8em;
+}
+.show {
+	width: 20em;
+}
+.show .min {
+	white-space: nowrap;
+	width: 1px;
+}
+.show label {
+	font-weight: bold;
+}
+.show .val {
+	text-align: right;
+	width: 3em;
+}
+.show .str {
+	text-align: left;
+	width: 12em;
+}
+.result {
+	font-weight: bold;
+	padding-left: 0.5em;
+}
+.status1 {
+	border: 1px solid #ccc;
+	background: #eee;
+	width: 100%;
+	margin-top: 1em;
+}
+.status2 {
+	background: #080;
+	height: 10px;
+	width: 0%;
+}
+.hint {
+	font-size: 0.8em;
+}
+#info {
+	font-family: Menlo, Monaco, Consolas, "Lucida Console", monospace;
+	font-size: 0.9em;
+	line-height: 1.2em;
+	white-space: pre;
+}
+#footer {
+	font-size: 0.6em;
+	text-align: right;
+}
+</style>
+</head>
+<body>
+<div id="main">
+	<div id="menu">
+		<button class="item" id="item1" onclick="opentab(1)">Settings</button>
+		<button class="item" id="item2" onclick="opentab(2)">Music</button>
+		<button class="item" id="item3" onclick="opentab(3)">Firmware</button>
+	</div>
+	<div class="tab" id="tab1off">Loading settings...</div>
+	<div class="tab" id="tab1on">
+		<table class="show" id="show"></table>
+		<p>
+			<button onclick="savecfg()">Save</button>
+			<button onclick="resetcfg()">Reset</button>
+			<span class="result" id="result1"></span>
+		</p>
+		<hr>
+		<div id="info"></div>
+		<input type="range" min="0" max="2000" value="0" id="throt" oninput="setthrot(value)">
+		<div class="hint">(slide right and left to arm)</div>
+	</div>
+	<div class="tab" id="tab2off">Connecting...</div>
+	<div class="tab" id="tab2on">
+		<textarea id="music" maxlength="500" rows="6" cols="30"></textarea>
+		<div class="hint">(RTTTL format is detected automatically)</div>
+		<div><input type="range" min="0" max="100" value="25" id="volume" oninput="getElementById('volval').innerHTML = `Volume ${value}%`"></div>
+		<div class="hint" id="volval">Volume 25%</div>
+		<p>
+			<button onclick="playmusic()">Play</button>
+			<button onclick="savemusic()">Save</button>
+			<button onclick="clearmusic()">Clear</button>
+			<span class="result" id="result2"></span>
+		</p>
+		<hr>
+		<div class="hint">
+			An optional number in the beginning sets tempo (BPM);<br>
+			<b>_</b> (underscore) is a pause;<br>
+			<b>cdefgab</b> are low notes;<br>
+			<b>CDEFGAB</b> are high notes;<br>
+			<b>#</b> (pound) after a note makes it a sharp note;<br>
+			<b><i>n</i></b> (number) after a note or pause is a duration: 1 - 1/16 (default), 2 - 1/8, 3 - 3/16, 4 - 1/4, etc.<br>
+			<b>+</b> (plus) enables octave shift;<br>
+			<b>-</b> (minus) disables octave shift;<br>
+		</div>
+	</div>
+	<div class="tab" id="tab3off">
+		<div>Probing bootloader...</div>
+		<div class="hint">(power cycle the ESC now!)</div>
+	</div>
+	<div class="tab" id="tab3on">
+		<table>
+			<tr><td><label for="image">Image</label></td><td><input type="file" id="image"></td></tr>
+			<tr><td><label for="boot">Type</label></td><td>
+				<select id="boot">
+					<option value="0">firmware</option>
+					<option value="1">bootloader</option>
+				</select>
+			</td></tr>
+			<tr><td><label for="wrp">Protection</label></td><td>
+				<select id="wrp">
+					<option value="0">--</option>
+					<option value="0x33">off</option>
+					<option value="0x44">bootloader</option>
+					<option value="0x55">full</option>
+				</select>
+				<button onclick="setwrp()">Set</button> <span class="result" id="result3"></span>
+			</td></tr>
+			<tr><td><label for="force">Force</label></td><td><input type="checkbox" id="force"> <span class="hint">(skip integrity check)</span></td></tr>
+		</table>
+		<p>
+			<button id="update" onclick="update()">Update</button>
+			<span class="result" id="result4"></span>
+		</p>
+		<div class="status1"><div class="status2" id="status"></div></div>
+		<hr>
+		<div id="fwinfo"></div>
+	</div>
+	<div id="footer">ESCape32 Wi-Fi Link @PROJECT_VER@ (escape32.org)</div>
+</div>
+<script>
+const params = {
+	arm: false,
+	damp: false,
+	revdir: false,
+	brushed: false,
+	throt_mode: ['forward', 'forward/reverse', 'forward/brake/reverse'],
+	throt_cal: false,
+	input_mode: ['servo', 'analog', 'serial', 'iBUS', 'SBUS'],
+	telem_mode: ['KISS', 'KISS auto', 'iBUS', 'S.Port'],
+	music: '',
+}
+
+let tabnum, tabvis = {};
+let ws, bn, bi, ival, timer, target, throtval, blocked;
+
+function send(cmd) {
+	if (ws.readyState != ws.OPEN) return;
+	ws.send(cmd);
+}
+
+function clearresults() {
+	clearInterval(bi);
+	const elems = document.getElementsByClassName('result');
+	for (let i = 0; i < elems.length; ++i) elems[i].style.display = 'none';
+}
+
+function setresult(n, ok, msg, cnt) {
+	clearresults();
+	const elem = document.getElementById('result' + n);
+	const style = elem.style;
+	style.display = 'none';
+	style.color = ok ? '#090' : '#e20';
+	elem.innerHTML = msg || '';
+	style.display = 'inline';
+	if (cnt == null) return;
+	cnt <<= 1;
+	bn = 0;
+	bi = setInterval(function () {
+		if (++bn == cnt) clearInterval(bi);
+		else style.display = bn & 1 ? 'none' : 'inline';
+	}, 200);
+}
+
+function opentab(n) {
+	if (blocked) return;
+	if (!n) n = tabnum;
+	tabnum = n;
+	tabvis = {};
+	clearresults();
+	const items = document.getElementsByClassName('item');
+	const tabs = document.getElementsByClassName('tab');
+	for (let i = 0; i < items.length; ++i) items[i].className = 'item';
+	for (let i = 0; i < tabs.length; ++i) tabs[i].style.display = 'none';
+	document.getElementById('item' + n).className = 'item active';
+	document.getElementById('tab' + n + 'off').style.display = 'block';
+	if (!ws || ws.readyState != ws.OPEN) {
+		connect();
+		return;
+	}
+	clearInterval(ival);
+	clearTimeout(timer);
+	switch (n) {
+		case 1:
+			ival = setInterval(function () {send('info\n')}, 500);
+			send('info\n');
+			send('show\n');
+			resettimer(1);
+			break;
+		case 3:
+			ival = setInterval(function () {blocked || send('_probe\n')}, 300);
+			send('_probe\n');
+			resettimer(3);
+			break;
+		default:
+			showtab(n);
+			break;
+	}
+}
+
+function showtab(n) {
+	if (!n) n = tabnum;
+	else if (n != tabnum) return;
+	document.getElementById('tab' + n + 'off').style.display = 'none';
+	document.getElementById('tab' + n + 'on').style.display = 'block';
+	tabvis[n] = true;
+}
+
+function hidetab(n) {
+	if (!n) n = tabnum;
+	else if (n != tabnum) return;
+	document.getElementById('tab' + n + 'off').style.display = 'block';
+	document.getElementById('tab' + n + 'on').style.display = 'none';
+	tabvis[n] = null;
+}
+
+function resettimer(n) {
+	if (n && n != tabnum) return;
+	clearTimeout(timer);
+	timer = setTimeout(function() {
+		ws.onopen = null;
+		ws.onmessage = null;
+		ws.onclose = null;
+		ws.close();
+		hidetab();
+		connect();
+	}, 2000);
+}
+
+function getinput(key, val) {
+	const data = params[key];
+	switch (typeof data) {
+		case 'boolean':
+			return `<input type="checkbox" id="field_${key}"${val != 0 ? ' checked' : ''} onchange="setparam('${key}', checked ? '1' : '0')">`;
+		case 'string':
+			return `<input type="text" maxlength="200" id="field_${key}" value="${val}" class="str" onchange="setparam('${key}', value)">`;
+		case 'object':
+			const res = [];
+			res.push(`<select id="field_${key}" onchange="setparam('${key}', value)">`);
+			for (let i = 0; i < data.length; ++i) res.push(`<option value="${i}"${val == i ? ' selected' : ''}>${data[i]}</option>`);
+			res.push('</select>');
+			return res.join('');
+		default:
+			return `<input type="text" maxlength="5" id="field_${key}" value="${val}" class="val" onchange="setparam('${key}', value)">`;
+	}
+}
+
+function getmsg(res) {
+	switch (res) {
+		case '0':  return 'Update successful';
+		case '1':  return 'Flash error (disable protection)';
+		case '-1': return 'Connection error';
+		default:   return `Unknown error ${res}`;
+	}
+}
+
+function handler1(data, key, val) { // 'get', 'set'
+	if (!data) {
+		if (!val) return;
+		send(`get ${key}\n`);
+		return;
+	}
+	[key, val] = data[0].split(': ');
+	const elem = document.getElementById('field_' + key);
+	if (elem.type == 'checkbox') elem.checked = val != 0;
+	else elem.value = val;
+}
+
+function handler2(ok) { // 'save', 'reset'
+	setresult(tabnum, ok, ok ? 'Done!' : 'Failed!', 3);
+	send('show\n');
+}
+
+const handlers = {
+	info: function (data) {
+		if (!data) return;
+		document.getElementById('info').innerHTML = data.join('<br>');
+		resettimer(1);
+	},
+	show: function (data) {
+		if (!data) return;
+		const res = [];
+		for (let i = 0; i < data.length; ++i) {
+			const [key, val] = data[i].split(': ');
+			res.push(`<tr><td><label for="${key}">${key}</label></td><td class="min">${getinput(key, val)}</td></tr>`);
+		}
+		document.getElementById('show').innerHTML = res.join('');
+		showtab(1);
+	},
+	get: handler1,
+	set: handler1,
+	save: handler2,
+	reset: handler2,
+	throt: function (ok, val) {
+		if (!ok) return;
+		if (throtval == val) throtval = null;
+		else send(`throt ${throtval}\n`);
+	},
+	_probe: function (ok) {
+		if (!ok) hidetab(3);
+		else if (!tabvis[3]) send('_info\n');
+		resettimer(3);
+	},
+	_info: function (data) {
+		if (!data) return;
+		target = data[1] && data[2];
+		document.getElementById('status').style.width = '0%';
+		document.getElementById('fwinfo').innerHTML = `Bootloader revision ${data[0]}<br>` +
+			(target ? `Firmware revision ${data[1]} [${data[2]}]` : 'Firmware not installed!');
+		showtab(3);
+	},
+	_setwrp: function (ok) {
+		setresult(3, ok, ok ? 'Done!' : 'Failed!', 3);
+		if (ok) document.getElementById('wrp').value = 0;
+	},
+	_update: function (ok) {
+		if (!ok) {
+			setresult(4, null, 'Failed to initiate update!', 3);
+			return;
+		}
+		setresult(4, true, "Updating...", 0);
+		blocked = true;
+	},
+	_status: function (_, val) {
+		document.getElementById('status').style.width = val + '%';
+		resettimer(3);
+	},
+	_result: function (_, res) {
+		blocked = null;
+		setresult(4, res == 0, getmsg(res));
+		send('_info\n');
+		if (res != 0) return;
+		document.getElementById('image').value = '';
+		document.getElementById('boot').value = 0;
+		document.getElementById('wrp').value = 0;
+		document.getElementById('force').checked = false;
+	},
+}
+
+function connect() {
+	resettimer();
+	ws = new WebSocket('ws://192.168.4.1/ws');
+	ws.onopen = function () {
+		throtval = null;
+		blocked = null;
+		opentab();
+	}
+	ws.onmessage = function (msg) {
+		const data = msg.data.split('\n');
+		const args = data.shift().split(' ');
+		const cmd = args.shift();
+		data.pop(); // Pop empty string
+		handlers[cmd](data.length && data.pop() == 'OK' ? data : null, ...args);
+	}
+	ws.onclose = function () {
+		hidetab();
+		resettimer();
+	}
+}
+
+function setparam(key, val) {
+	val = val.replace(/\s+/g, '');
+	if (val.length) send(`set ${key} ${val}\n`);
+	else send(`get ${key}\n`);
+}
+
+function setthrot(val) {
+	if (throtval == null) send(`throt ${val}\n`);
+	throtval = val;
+}
+
+function savecfg() {
+	send('save\n');
+}
+
+function resetcfg() {
+	send('reset\n');
+}
+
+function parsemusic() {
+	const data = document.getElementById('music').value.replace(/\s+/g, '');
+	const chunks = data.split(':');
+	if (chunks.length != 3) return data; // Not in RTTTL format
+	let defdur = 16, defoct = 4, defbpm = 120;
+	chunks[1].split(',').forEach(item => {
+		const [key, val] = item.split('=');
+		switch (key) {
+			case 'd':
+				defdur = Math.min(Math.max(parseInt(val), 1), 32);
+				break;
+			case 'o':
+				defoct = Math.min(Math.max(parseInt(val), 4), 7);
+				break;
+			case 'b':
+				defbpm = Math.min(Math.max(parseInt(val), 20), 999);
+				break;
+			default:
+				console.warn(`Discarding invalid option '${key}'`);
+				break;
+		}
+	});
+	let maxdur = 1, minoct = 7;
+	const notes = chunks[2].split(',').map(item => {
+		const parts = item.match(/^(1|2|4|8|16|32)?((?:[a-g]|h|p)#?)(\.?)(4|5|6|7)?$/);
+		if (!parts) {
+			console.warn(`Discarding invalid note '${item}'`);
+			return [];
+		}
+		let note = parts[2];
+		if (note === 'h') note = 'b';
+		else if (note == 'p') note = '_';
+		const dot = parts[3] == '.';
+		const dur = parseInt(parts[1]) || defdur;
+		const oct = parseInt(parts[4]) || defoct;
+		if (maxdur < dur) maxdur = dur;
+		if (minoct > oct) minoct = oct;
+		return [note, dot, dur, oct];
+	});
+	let durofs = 0, curoct = 4;
+	if (maxdur == 32) {
+		defbpm <<= 1;
+		maxdur >>= 1;
+		--durofs;
+	} else while (defbpm >= 20 && maxdur < 16) {
+		defbpm >>= 1;
+		maxdur <<= 1;
+		++durofs;
+	}
+	defbpm <<= 1;
+	if (defbpm > 999) defbpm = 999;
+	const octofs = minoct - 4;
+	const res = [defbpm];
+	for (let i = 0; i < notes.length; ++i) {
+		let [note, dot, dur, oct] = notes[i];
+		if (!note) continue;
+		dur = 32 / dur;
+		if (durofs < 0) dur <<= -durofs;
+		else if (durofs > 0) dur >>= durofs;
+		if (dot) dur += dur >> 1;
+		oct -= octofs;
+		if (oct > 6) oct = 6;
+		if (oct > curoct + 1) {
+			++curoct;
+			res.push('+');
+		} else if (oct < curoct) {
+			--curoct;
+			res.push('-');
+		}
+		if (oct > curoct) note = note.toUpperCase();
+		res.push(note);
+		if (dur > 1) res.push(dur);
+	}
+	return res.join('');
+}
+
+function playmusic() {
+	const music = parsemusic();
+	const volume = document.getElementById('volume').value;
+	if (!music || volume == 0) return;
+	send(`play ${music} ${volume}\n`);
+}
+
+function savemusic() {
+	const music = parsemusic();
+	const volume = document.getElementById('volume').value;
+	if (!music) return;
+	setparam('music', music);
+	setparam('volume', volume);
+	savecfg();
+}
+
+function clearmusic() {
+	document.getElementById('music').value = '';
+	const elem = document.getElementById('volume');
+	elem.value = 25;
+	elem.oninput();
+}
+
+function setwrp() {
+	if (blocked) return;
+	const wrp = document.getElementById('wrp').value;
+	if (wrp == 0) setresult(3, null, 'Not selected!', 3);
+	else send(`_setwrp ${wrp}\n`);
+}
+
+function update() {
+	if (blocked) return;
+	const file = document.getElementById('image').files[0];
+	if (!file) {
+		setresult(4, null, 'Image not selected!', 3);
+		return;
+	}
+	const fr = new FileReader();
+	fr.onload = function () {
+		const data = fr.result;
+		const size = data.byteLength;
+		const boot = document.getElementById('boot').value;
+		const wrp = document.getElementById('wrp').value;
+		const force = document.getElementById('force').checked;
+		try {
+			if (!size) throw 'Image contains no data!';
+			if (boot != 0) {
+				if (size > 4096) throw 'Image too big!';
+				if (!force) throw 'Check <u>Force</u> to confirm!';
+			} else if (!force) {
+				const info = new Uint8Array(data.slice(0, 20));
+				if (info[0] != 0xea || info[1] != 0x32) throw 'Invalid image!';
+				let i, j = target.length;
+				for (i = 0; i < j && target.charCodeAt(i) == info[i + 4]; ++i);
+				if (i < j || info[i + 4] && j) throw 'Target mismatch!';
+			}
+			setresult(4);
+			send(`_update ${size} ${boot} ${wrp}\n`);
+			send(data);
+		} catch (err) {
+			if (typeof err != 'string') throw err;
+			setresult(4, null, err, 3);
+		}
+	}
+	fr.readAsArrayBuffer(file);
+}
+
+opentab(1);
+</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+menu "ESCape32-WiFi-Link configuration"
+	orsource "$IDF_PATH/examples/common_components/env_caps/$IDF_TARGET/Kconfig.env_caps"
+	config UART_NUM
+		int "UART port number"
+		range 0 2 if IDF_TARGET_ESP32 || IDF_TARGET_ESP32S3
+		default 2 if IDF_TARGET_ESP32 || IDF_TARGET_ESP32S3
+		range 0 1
+		default 1
+	config UART_RX
+		int "UART RX pin number"
+		range ENV_GPIO_RANGE_MIN ENV_GPIO_IN_RANGE_MAX
+		default 4 if IDF_TARGET_ESP32C3
+		default 16 if IDF_TARGET_ESP32S2
+		default -1
+	config UART_TX
+		int "UART TX pin number"
+		range ENV_GPIO_RANGE_MIN ENV_GPIO_OUT_RANGE_MAX
+		default 2 if IDF_TARGET_ESP32C3
+		default 33 if IDF_TARGET_ESP32S2
+		default -1
+	config LED_PIN
+		int "LED pin number"
+		range ENV_GPIO_RANGE_MIN ENV_GPIO_OUT_RANGE_MAX
+		default 8 if IDF_TARGET_ESP32C3
+		default 15 if IDF_TARGET_ESP32S2
+		default 2
+	config LED_INV
+		bool "LED active low"
+		default y if IDF_TARGET_ESP32C3
+		default n
+endmenu
