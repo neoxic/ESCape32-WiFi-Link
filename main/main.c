@@ -84,13 +84,14 @@ int processdns(uint8_t *buf, int len) {
 		cur += 4;
 		if (type != 1 || class != 1) continue;
 		DNSAnswer *answer = (DNSAnswer *)pos;
+		pos += sizeof *answer;
+		if (pos - buf > 512) return 0;
 		answer->name = htons(0xc000 | (name - buf));
 		answer->type = htons(type);
 		answer->class = htons(class);
 		answer->ttl = htonl(60);
 		answer->len = htons(4);
 		answer->addr = htonl(0xc0a80401); // 192.168.4.1
-		pos += sizeof *answer;
 		++cnt;
 	}
 	memmove(cur, end, pos - end); // Ignore other sections

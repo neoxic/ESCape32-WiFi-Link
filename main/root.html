@@ -169,7 +169,7 @@ button:active {
 	</div>
 	<div class="tab" id="tab3on">
 		<table>
-			<tr><td><label for="image">Image</label></td><td><input type="file" id="image"></td></tr>
+			<tr><td><label for="image">Image</label></td><td><input type="file" id="image" accept=".bin"></td></tr>
 			<tr><td><label for="boot">Type</label></td><td>
 				<select id="boot">
 					<option value="0">firmware</option>
@@ -198,6 +198,24 @@ button:active {
 	<div id="footer">ESCape32 Wi-Fi Link @PROJECT_VER@ (escape32.org)</div>
 </div>
 <script>
+const bitvals = {};
+
+function bitfield(n) {
+	return function (key, val) {
+		const res = [];
+		for (let i = 0; i < n; ++i) {
+			let bit = 1 << i;
+			res.push(`<input type="checkbox" class="field_${key}"${val & bit ? ' checked' : ''} onchange="setbit('${key}', ${bit}, checked)">`);
+		}
+		bitvals[key] = val;
+		return res.join('');
+	}
+}
+
+function setbit(key, bit, on) {
+	setparam(key, (on ? bitvals[key] | bit : bitvals[key] & ~bit).toString());
+}
+
 const params = {
 	arm: false,
 	damp: false,
@@ -205,10 +223,11 @@ const params = {
 	brushed: false,
 	throt_mode: ['forward', 'forward/reverse', 'forward/brake/reverse'],
 	throt_cal: false,
-	input_mode: ['servo', 'analog', 'serial', 'iBUS', 'SBUS'],
-	telem_mode: ['KISS', 'KISS auto', 'iBUS', 'S.Port'],
+	input_mode: ['servo', 'analog', 'serial', 'iBUS', 'SBUS', 'CRSF'],
+	telem_mode: ['KISS', 'KISS auto', 'iBUS', 'S.Port', 'CRSF'],
 	music: '',
-}
+	led: bitfield(4),
+};
 
 let tabnum, tabvis = {};
 let ws, bn, bi, ival, timer, target, throtval, blocked;
@@ -319,6 +338,8 @@ function getinput(key, val) {
 			for (let i = 0; i < data.length; ++i) res.push(`<option value="${i}"${val == i ? ' selected' : ''}>${data[i]}</option>`);
 			res.push('</select>');
 			return res.join('');
+		case 'function':
+			return data(key, val);
 		default:
 			return `<input type="text" maxlength="5" id="field_${key}" value="${val}" class="val" onchange="setparam('${key}', value)">`;
 	}
@@ -340,6 +361,12 @@ function handler1(data, key, val) { // 'get', 'set'
 		return;
 	}
 	[key, val] = data[0].split(': ');
+	if (key in bitvals) {
+		const elems = document.getElementsByClassName('field_' + key);
+		for (let i = 0; i < elems.length; ++i) elems[i].checked = val & 1 << i;
+		bitvals[key] = val;
+		return;
+	}
 	const elem = document.getElementById('field_' + key);
 	if (elem.type == 'checkbox') elem.checked = val != 0;
 	else elem.value = val;
@@ -414,7 +441,7 @@ const handlers = {
 		document.getElementById('wrp').value = 0;
 		document.getElementById('force').checked = false;
 	},
-}
+};
 
 function connect() {
 	resettimer();
