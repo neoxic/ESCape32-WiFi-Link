@@ -365,7 +365,7 @@ void app_main(void) {
 		.flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
 		.source_clk = UART_SCLK_DEFAULT,
 	};
-	ESP_ERROR_CHECK(uart_driver_install(CONFIG_UART_NUM, UART_FIFO_LEN * 2, 0, 10, &queue, 0));
+	ESP_ERROR_CHECK(uart_driver_install(CONFIG_UART_NUM, UART_HW_FIFO_LEN(CONFIG_UART_NUM) * 2, 0, 10, &queue, 0));
 	ESP_ERROR_CHECK(uart_param_config(CONFIG_UART_NUM, &ucfg));
 	ESP_ERROR_CHECK(uart_set_pin(CONFIG_UART_NUM, CONFIG_UART_TX, CONFIG_UART_RX, -1, -1));
 	ESP_ERROR_CHECK(uart_set_mode(CONFIG_UART_NUM, UART_MODE_RS485_HALF_DUPLEX));

@@ -9,7 +9,7 @@ Installation
 
 Download the latest pre-built combined image [here](https://github.com/neoxic/ESCape32-WiFi-Link/releases).
 
-Flash your board using the [ESP Flash Tool](https://www.espressif.com/en/support/download/other-tools) or any DFU utility, e.g. dfu-util.
+Flash the image at offset 0x0 using the [ESP Flash Tool](https://www.espressif.com/en/support/download/other-tools) or any DFU utility, e.g. dfu-util.
 
 Visit the [ESCape32 Wiki / Wi-Fi Link](https://github.com/neoxic/ESCape32/wiki/WiFiLink) page for more information.
 

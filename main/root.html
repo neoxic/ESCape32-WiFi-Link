@@ -89,6 +89,9 @@ button:active {
 	text-align: left;
 	width: 12em;
 }
+.show .greyed {
+	color: #bbb;
+}
 .result {
 	font-weight: bold;
 	padding-left: 0.5em;
@@ -226,8 +229,53 @@ const params = {
 	input_mode: ['servo', 'analog', 'serial', 'iBUS', 'SBUS', 'CRSF'],
 	telem_mode: ['KISS', 'KISS auto', 'iBUS', 'S.Port', 'CRSF'],
 	music: '',
+	bec: ['5.5V', '6.5V', '7.4V', '8.4V'],
 	led: bitfield(4),
 };
+
+const hints = {
+	arm: 'wait for zero throttle on startup',
+	damp: 'complementary PWM',
+	revdir: 'reversed motor direction',
+	brushed: 'brushed mode',
+	timing: 'motor timing',
+	sine_range: 'sine startup range',
+	sine_power: 'sine startup power',
+	freq_min: 'minimum PWM frequency',
+	freq_max: 'maximum PWM frequency',
+	duty_min: 'minimum throttle power',
+	duty_max: 'maximum throttle power',
+	duty_spup: 'maximum spin-up power',
+	duty_ramp: 'maximum power @ kERPM',
+	duty_rate: 'acceleration slew rate',
+	duty_drag: 'drag brake amount',
+	throt_set: 'preset throttle',
+	throt_cal: 'automatic throttle calibration',
+	throt_min: 'minimum throttle setpoint',
+	throt_mid: 'middle throttle setpoint',
+	throt_max: 'maximum throttle setpoint',
+	input_chid: 'serial channel ID',
+	telem_phid: 'telemetry physical ID',
+	telem_poles: 'number of motor poles',
+	prot_stall: 'stall protection ERPM',
+	prot_temp: 'temperature threshold',
+	prot_volt: 'low voltage cutoff per cell',
+	prot_cells: 'number of battery cells',
+	prot_curr: 'maximum current',
+	volume: 'sound volume',
+	beacon: 'beacon volume',
+	bec: 'if equipped',
+};
+
+const deps = [
+	{ // Disable if checked
+		arm: ['throt_set'],
+		brushed: ['timing', 'sine_range', 'sine_power', 'freq_max', 'duty_spup', 'prot_stall'],
+	},
+	{ // Enable if checked
+		damp: ['sine_range', 'sine_power'],
+	},
+];
 
 let tabnum, tabvis = {};
 let ws, bn, bi, ival, timer, target, throtval, blocked;
@@ -325,7 +373,7 @@ function resettimer(n) {
 	}, 2000);
 }
 
-function getinput(key, val) {
+function getfield(key, val) {
 	const data = params[key];
 	switch (typeof data) {
 		case 'boolean':
@@ -354,6 +402,21 @@ function getmsg(res) {
 	}
 }
 
+function checkdeps() {
+	const res = {};
+	for (let i = 0; i < 2; ++i) {
+		const map = deps[i];
+		for (key in map) {
+			const elem = document.getElementById('field_' + key);
+			if (elem) map[key].forEach(function (key) {res[key] |= i ^ elem.checked});
+		}
+	}
+	for (key in res) {
+		const elem = document.getElementById('field_' + key);
+		if (elem) document.getElementById('label_' + key).className = (elem.disabled = res[key]) ? 'greyed' : '';
+	}
+}
+
 function handler1(data, key, val) { // 'get', 'set'
 	if (!data) {
 		if (!val) return;
@@ -368,8 +431,12 @@ function handler1(data, key, val) { // 'get', 'set'
 		return;
 	}
 	const elem = document.getElementById('field_' + key);
-	if (elem.type == 'checkbox') elem.checked = val != 0;
-	else elem.value = val;
+	if (elem.type != 'checkbox') {
+		elem.value = val;
+		return;
+	}
+	elem.checked = val != 0;
+	checkdeps();
 }
 
 function handler2(ok) { // 'save', 'reset'
@@ -388,9 +455,14 @@ const handlers = {
 		const res = [];
 		for (let i = 0; i < data.length; ++i) {
 			const [key, val] = data[i].split(': ');
-			res.push(`<tr><td><label for="${key}">${key}</label></td><td class="min">${getinput(key, val)}</td></tr>`);
+			const hint = hints[key];
+			res.push('<tr>');
+			res.push(`<td><label for="${key}" id="label_${key}">${key}</label></td>`);
+			res.push(`<td class="min">${getfield(key, val)}${hint ? ` <span class="hint">(${hint})</span>` : ''}</td>`);
+			res.push('</tr>');
 		}
 		document.getElementById('show').innerHTML = res.join('');
+		checkdeps();
 		showtab(1);
 	},
 	get: handler1,
