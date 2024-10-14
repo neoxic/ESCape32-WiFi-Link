@@ -5,13 +5,39 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ESCape32 Wi-Fi Link</title>
 <style>
+:root {
+	--222: #222;
+	--bbb: #bbb;
+	--ccc: #ccc;
+	--ddd: #ddd;
+	--eee: #eee;
+	--fff: #fff;
+	--red: #e20;
+	--grn: #090;
+	--sel: #3563bf;
+	--val: #39558f;
+}
+@media (prefers-color-scheme: dark) {
+:root {
+	--222: #ddd;
+	--bbb: #666;
+	--ccc: #555;
+	--ddd: #444;
+	--eee: #333;
+	--fff: #222;
+	--red: #e20;
+	--grn: #2b2;
+	--sel: #72a2e0;
+	--val: #99c6ff;
+}}
 body {
 	font-family: -apple-system, "Trebuchet MS", Helvetica, Arial, sans-serif;
 	font-size: 1em;
 	line-height: 1.4em;
-	color: #222;
-	margin: 0;
+	background: var(--fff);
+	color: var(--222);
 	padding: 0;
+	margin: 0;
 }
 #main {
 	padding: 0.4em;
@@ -20,39 +46,96 @@ body {
 p {
 	margin: 0.5em 0 0 0;
 }
+a {
+	color: var(--222);
+}
 b {
-	border: 1px solid #ccc;
+	border: 1px solid var(--ccc);
 	border-radius: 2px;
-	background: #eee;
+	background: var(--eee);
+	color: var(--red);
 	padding: 0.1em 0.2em;
-	color: #e20;
 }
 hr {
 	background: none;
 	border: medium none;
-	border-bottom: 1px solid #ddd;
+	border-bottom: 1px solid var(--ddd);
 	margin: 0.8em 0 0.6em 0;
 }
 label {
 	white-space: nowrap;
 }
-button, input, select, textarea {
-	border: 1px solid #ccc;
-	background: #eee;
+input, button, select, textarea {
+	border: 1px solid var(--ccc);
+	border-radius: 5px;
+	background: var(--eee);
+	color: var(--val);
 	font-size: 1em;
 	padding: 0.2em 0.4em;
+	margin: 0;
 	cursor: pointer;
+}
+input:disabled {
+	background: var(--eee);
+	color: var(--bbb);
+}
+input[type=checkbox] {
+	margin: 0.1em;
+}
+input[type=range] {
+	/* Commented out due to a bug in Android. Thank you, Android! */
+	/*-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;*/
+	border-radius: 4px;
+	height: 1px;
+	width: 20em;
+}
+input[type=range]:hover {
+	background: var(--ddd);
+}
+input[type=range]:active {
+	background: var(--ccc);
+}
+button {
+	border-radius: 0;
 	transition: 0.2s;
 }
 button:hover {
-	background: #ddd;
+	background: var(--ddd);
 }
 button:active {
-	background: #ccc;
+	background: var(--ccc);
+}
+textarea {
+	height: 8em;
+	width: 20em;
+}
+progress {
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;
+	border: 1px solid var(--ccc);
+	border-radius: 4px;
+	background: var(--eee);
+	height: 8px;
+	width: 20em;
+}
+::-webkit-progress-bar {
+	border-radius: 4px;
+	background: var(--eee);
+}
+::-webkit-progress-value {
+	border-radius: 4px;
+	background: var(--grn);
+}
+::-moz-progress-bar {
+	border-radius: 2px;
+	background: var(--grn);
 }
 #menu {
-	border: 1px solid #ccc;
-	background: #eee;
+	border: 1px solid var(--ccc);
+	background: var(--eee);
 	overflow: hidden;
 }
 #menu button {
@@ -61,11 +144,11 @@ button:active {
 	padding: 1em;
 }
 #menu button.active {
-	background: #26d;
-	color: #fff;
+	background: var(--sel);
+	color: var(--fff);
 }
 .tab {
-	border: 1px solid #ccc;
+	border: 1px solid var(--ccc);
 	border-top: none;
 	overflow: hidden;
 	display: none;
@@ -90,22 +173,11 @@ button:active {
 	width: 12em;
 }
 .show .greyed {
-	color: #bbb;
+	color: var(--bbb);
 }
 .result {
 	font-weight: bold;
 	padding-left: 0.5em;
-}
-.status1 {
-	border: 1px solid #ccc;
-	background: #eee;
-	width: 100%;
-	margin-top: 1em;
-}
-.status2 {
-	background: #080;
-	height: 10px;
-	width: 0%;
 }
 .hint {
 	font-size: 0.8em;
@@ -115,6 +187,9 @@ button:active {
 	font-size: 0.9em;
 	line-height: 1.2em;
 	white-space: pre;
+}
+#fwinfo {
+	white-space: nowrap;
 }
 #footer {
 	font-size: 0.6em;
@@ -144,9 +219,9 @@ button:active {
 	</div>
 	<div class="tab" id="tab2off">Connecting...</div>
 	<div class="tab" id="tab2on">
-		<textarea id="music" maxlength="500" rows="6" cols="30"></textarea>
+		<textarea id="music" maxlength="500"></textarea>
 		<div class="hint">(RTTTL format is detected automatically)</div>
-		<div><input type="range" min="0" max="100" value="25" id="volume" oninput="getElementById('volval').innerHTML = `Volume ${value}%`"></div>
+		<input type="range" min="0" max="100" value="25" id="volume" oninput="setvolume(value)">
 		<div class="hint" id="volval">Volume 25%</div>
 		<p>
 			<button onclick="playmusic()">Play</button>
@@ -194,7 +269,7 @@ button:active {
 			<button id="update" onclick="update()">Update</button>
 			<span class="result" id="result4"></span>
 		</p>
-		<div class="status1"><div class="status2" id="status"></div></div>
+		<progress id="status" value="0" max="100"></progress>
 		<hr>
 		<div id="fwinfo"></div>
 	</div>
@@ -224,10 +299,12 @@ const params = {
 	damp: false,
 	revdir: false,
 	brushed: false,
-	throt_mode: ['forward', 'forward/reverse', 'forward/brake/reverse'],
+	duty_lock: false,
+	throt_mode: ['forward', 'forward/reverse', 'forward/brake/reverse', 'forward/brake'],
 	throt_cal: false,
 	input_mode: ['servo', 'analog', 'serial', 'iBUS', 'SBUS', 'CRSF'],
 	telem_mode: ['KISS', 'KISS auto', 'iBUS', 'S.Port', 'CRSF'],
+	prot_sens: ['ESC', 'motor', 'both'],
 	music: '',
 	bec: ['5.5V', '6.5V', '7.4V', '8.4V'],
 	led: bitfield(4),
@@ -247,8 +324,9 @@ const hints = {
 	duty_max: 'maximum throttle power',
 	duty_spup: 'maximum spin-up power',
 	duty_ramp: 'maximum power @ kERPM',
-	duty_rate: 'acceleration slew rate',
+	duty_rate: 'duty cycle slew rate',
 	duty_drag: 'drag brake amount',
+	duty_lock: 'active drag brake',
 	throt_set: 'preset throttle',
 	throt_cal: 'automatic throttle calibration',
 	throt_min: 'minimum throttle setpoint',
@@ -259,21 +337,21 @@ const hints = {
 	telem_poles: 'number of motor poles',
 	prot_stall: 'stall protection ERPM',
 	prot_temp: 'temperature threshold',
+	prot_sens: 'temperature sensor',
 	prot_volt: 'low voltage cutoff per cell',
 	prot_cells: 'number of battery cells',
 	prot_curr: 'maximum current',
 	volume: 'sound volume',
 	beacon: 'beacon volume',
-	bec: 'if equipped',
 };
 
 const deps = [
 	{ // Disable if checked
 		arm: ['throt_set'],
-		brushed: ['timing', 'sine_range', 'sine_power', 'freq_max', 'duty_spup', 'prot_stall'],
+		brushed: ['timing', 'sine_range', 'sine_power', 'freq_min', 'duty_spup', 'duty_ramp', 'duty_lock', 'prot_stall'],
 	},
 	{ // Enable if checked
-		damp: ['sine_range', 'sine_power'],
+		damp: ['sine_range', 'sine_power', 'duty_lock'],
 	},
 ];
 
@@ -296,7 +374,7 @@ function setresult(n, ok, msg, cnt) {
 	const elem = document.getElementById('result' + n);
 	const style = elem.style;
 	style.display = 'none';
-	style.color = ok ? '#090' : '#e20';
+	style.color = ok ? 'var(--grn)' : 'var(--red)';
 	elem.innerHTML = msg || '';
 	style.display = 'inline';
 	if (cnt == null) return;
@@ -457,7 +535,7 @@ const handlers = {
 			const [key, val] = data[i].split(': ');
 			const hint = hints[key];
 			res.push('<tr>');
-			res.push(`<td><label for="${key}" id="label_${key}">${key}</label></td>`);
+			res.push(`<td><label for="field_${key}" id="label_${key}">${key}</label></td>`);
 			res.push(`<td class="min">${getfield(key, val)}${hint ? ` <span class="hint">(${hint})</span>` : ''}</td>`);
 			res.push('</tr>');
 		}
@@ -481,10 +559,14 @@ const handlers = {
 	},
 	_info: function (data) {
 		if (!data) return;
+		const res = [];
+		const pins = ['PA2', 'PA6', 'PB4'];
+		const [rev, pin, mcu] = data[0].split(' ');
 		target = data[1] && data[2];
-		document.getElementById('status').style.width = '0%';
-		document.getElementById('fwinfo').innerHTML = `Bootloader revision ${data[0]}<br>` +
-			(target ? `Firmware revision ${data[1]} [${data[2]}]` : 'Firmware not installed!');
+		res.push(pin != 0 ? `Bootloader revision ${rev} [IO:${pins[pin - 1] || pin}, MCU:${mcu}]` : `Bootloader revision ${rev}`);
+		res.push(target ? `Firmware revision ${data[1]} [${data[2]}]` : 'Firmware not installed!');
+		document.getElementById('status').value = 0;
+		document.getElementById('fwinfo').innerHTML = res.join('<br>');
 		showtab(3);
 	},
 	_setwrp: function (ok) {
@@ -500,7 +582,7 @@ const handlers = {
 		blocked = true;
 	},
 	_status: function (_, val) {
-		document.getElementById('status').style.width = val + '%';
+		document.getElementById('status').value = val;
 		resettimer(3);
 	},
 	_result: function (_, res) {
@@ -545,6 +627,10 @@ function setparam(key, val) {
 function setthrot(val) {
 	if (throtval == null) send(`throt ${val}\n`);
 	throtval = val;
+}
+
+function setvolume(val) {
+	document.getElementById('volval').innerHTML = `Volume ${val}%`;
 }
 
 function savecfg() {

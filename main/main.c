@@ -223,7 +223,7 @@ static esp_err_t wshandler(httpd_req_t *req) {
 				sendval(0); // First block
 				sendval(4); // (4+1)*4=20 bytes
 				if (recvdata(info + 32) != 20) goto done;
-				len += sprintf((char *)buf + len, "%d\n", info[0]);
+				len += sprintf((char *)buf + len, "%d %d %X\n", info[0], info[1], info[2] | info[3] << 8 | info[4] << 16 | info[5] << 24);
 				len += sprintf((char *)buf + len, info[32] == 0xea && info[33] == 0x32 ? "%d\n%s\n" : "\n\n", info[34], info + 36);
 				res = 0;
 				goto done;
