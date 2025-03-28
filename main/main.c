@@ -24,6 +24,7 @@
 #include "driver/uart.h"
 #include "lwip/sockets.h"
 #include "mdns.h"
+#include "build_defs.h"
 
 #define SSID "ESCape32-WiFi-Link"
 #define HOSTNAME "escape32"
@@ -53,11 +54,18 @@ typedef struct __attribute__((__packed__)) {
 	uint32_t addr;
 } DNSAnswer;
 
-extern const char _binary_root_html_gz_start[];
-extern const char _binary_root_html_gz_end[];
+extern const char _binary_root_html_gz_start[], _binary_root_html_gz_end[];
+#define XX(lang) \
+extern const char _binary_root_##lang##_json_gz_start[], _binary_root_##lang##_json_gz_end[];
+LANG_LIST(XX)
+#undef XX
 
 static httpd_handle_t server;
 static QueueHandle_t queue;
+
+static inline int min(int a, int b) {
+	return a < b ? a : b;
+}
 
 static void setled(int x) {
 #ifdef CONFIG_LED_INV
@@ -103,7 +111,7 @@ int processdns(uint8_t *buf, int len) {
 }
 
 static int recvbuf(uint8_t *buf, int len, int all) {
-	int ofs = 0;
+	int pos = 0;
 	while (len) {
 		size_t size;
 		uart_get_buffered_data_len(CONFIG_UART_NUM, &size);
@@ -120,13 +128,13 @@ static int recvbuf(uint8_t *buf, int len, int all) {
 		if (size > len) size = len;
 		uart_read_bytes(CONFIG_UART_NUM, buf, size, portMAX_DELAY);
 		buf += size;
-		ofs += size;
+		pos += size;
 		len -= size;
 		if (all) continue;
-		if (ofs >= 3 && !memcmp(buf - 3, "OK\n", 3)) break;
-		if (ofs >= 6 && !memcmp(buf - 6, "ERROR\n", 6)) break;
+		if (pos >= 3 && !memcmp(buf - 3, "OK\n", 3)) break;
+		if (pos >= 6 && !memcmp(buf - 6, "ERROR\n", 6)) break;
 	}
-	return ofs;
+	return pos;
 }
 
 static void sendbuf(const uint8_t *buf, int len) {
@@ -165,12 +173,6 @@ static char *checkcmd(uint8_t *buf, int len, const char *cmd) {
 	return len < n || memcmp(buf, cmd, n) || (buf[n] != ' ' && buf[n] != '\n') ? 0 : (char *)buf + n;
 }
 
-static int maxlen(int pos, int size) {
-	int len = size - pos;
-	if (len > 1024) len = 1024;
-	return len;
-}
-
 static void notify(httpd_req_t *req, const char *key, int val) {
 	char buf[32];
 	httpd_ws_frame_t frame = {
@@ -189,14 +191,32 @@ static esp_err_t http404handler(httpd_req_t *req, httpd_err_code_t err) {
 }
 
 static esp_err_t roothandler(httpd_req_t *req) {
-	httpd_resp_set_type(req, "text/html");
+	const char *buf = req->uri;
+	ssize_t len;
+	if (!strcmp(buf, "/")) {
+		buf = _binary_root_html_gz_start;
+		len = _binary_root_html_gz_end - _binary_root_html_gz_start;
+	}
+#define XX(lang) \
+	else if (!strcmp(buf, "/?" #lang)) { \
+		buf = _binary_root_##lang##_json_gz_start; \
+		len = _binary_root_##lang##_json_gz_end - _binary_root_##lang##_json_gz_start; \
+	}
+LANG_LIST(XX)
+#undef XX
+	else {
+		httpd_resp_set_status(req, "400 Bad Request");
+		httpd_resp_send(req, 0, 0);
+		return 0;
+	}
+	httpd_resp_set_type(req, buf == _binary_root_html_gz_start ? "text/html" : "text/json");
 	httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
-	httpd_resp_send(req, _binary_root_html_gz_start, _binary_root_html_gz_end - _binary_root_html_gz_start);
+	httpd_resp_send(req, buf, len);
 	return 0;
 }
 
 static esp_err_t wshandler(httpd_req_t *req) {
-	static int size, boot, wrp;
+	static int size, boot, wrp, ofs;
 	if (req->method == HTTP_GET) return 0;
 	httpd_ws_frame_t frame = {0};
 	if (httpd_ws_recv_frame(req, &frame, 0)) return -1;
@@ -241,14 +261,15 @@ static esp_err_t wshandler(httpd_req_t *req) {
 				boot = strtol(arg, &arg, 0);
 				wrp = strtol(arg, &arg, 0);
 				if (*arg != '\n') goto done;
+				ofs = 0;
 				res = 0;
 				goto done;
 			}
 			sendbuf(buf, len);
 			if (checkcmd(buf, len, "play")) return 0; // Don't wait for response
-			int ofs = recvbuf(buf + len, sizeof buf - len, 0);
-			if (!ofs) return -1;
-			frame.len += ofs;
+			int pos = recvbuf(buf + len, sizeof buf - len, 0);
+			if (!pos) return -1;
+			frame.len += pos;
 			return httpd_ws_send_frame(req, &frame);
 		done:
 			len += sprintf((char *)buf + len, res ? "ERROR\n" : "OK\n");
@@ -256,50 +277,52 @@ static esp_err_t wshandler(httpd_req_t *req) {
 			return httpd_ws_send_frame(req, &frame);
 		}
 		case HTTPD_WS_TYPE_BINARY: { // Firmware update
-			if (size != len || !(size = (size + 3) & ~3) || (boot && size > 4096)) {
-				ESP_LOGE("httpd_ws", "Invalid image size %d (payload %zu)", size, len);
-				return -1;
+			ESP_LOGI("httpd_ws", "Updating... [size %d, boot %d, wrp 0x%02x, ofs %d, len %d]", size, boot, wrp, ofs, len);
+			uint8_t *buf = 0;
+			if (ofs + len > size || (boot && len > 4096) || !(len = (len + 3) & ~3)) { // Invalid frame
+				res = -1001;
+				goto error;
 			}
-			uint8_t *buf = malloc(size);
-			if (!buf) {
-				ESP_LOGE("httpd_ws", "Can't allocate %d bytes", size);
-				return -1;
+			if (!(buf = malloc(len))) {
+				res = -1002;
+				goto error;
 			}
-			frame.payload = memset(buf, 0xff, size);
+			frame.payload = memset(buf, 0xff, len);
 			if (httpd_ws_recv_frame(req, &frame, len)) {
-				free(buf);
-				return -1;
+				res = -1003;
+				goto error;
 			}
-			ESP_LOGI("httpd_ws", "Firmware update started (size %d, boot %d, wrp 0x%02x)", size, boot, wrp);
 			if (boot) {
-				if (!(size & 1023) && size != 4096) size += 4; // Ensure last block marker
+				if (!(len & 1023) && len != 4096) len += 4; // Ensure last block marker
+				size = 0; // Ensure single frame
 				sendval(CMD_UPDATE);
-				for (int pos = 0; pos < size; pos += 1024) {
-					notify(req, "_status", pos * 100 / size);
-					senddata(buf + pos, maxlen(pos, size));
-					if ((res = recvval())) break;
+				for (int pos = 0; pos < len; pos += 1024) {
+					notify(req, "_status", pos * 100 / len);
+					senddata(buf + pos, min(len - pos, 1024));
+					if ((res = recvval())) goto error;
 				}
-				if (!res) res = recvval(); // Wait for ACK after reboot
+				if ((res = recvval())) goto error; // Wait for ACK after reboot
 			} else {
-				for (int pos = 0; pos < size; pos += 1024) {
-					notify(req, "_status", pos * 100 / size);
+				for (int pos = 0; pos < len; pos += 1024, ofs += 1024) {
+					notify(req, "_status", ofs * 100 / size);
 					sendval(CMD_WRITE);
-					sendval(pos / 1024); // Block number
-					senddata(buf + pos, maxlen(pos, size));
-					if ((res = recvval())) break;
+					sendval(ofs / 1024); // Block number
+					senddata(buf + pos, min(len - pos, 1024));
+					if ((res = recvval())) goto error;
 				}
+				if (ofs < size) goto skip; // More frames on the way
 			}
-			if (!res) {
-				notify(req, "_status", 100);
-				if (wrp) {
-					sendval(CMD_SETWRP);
-					sendval(wrp);
-					res = recvval();
-				}
+			if (wrp) {
+				sendval(CMD_SETWRP);
+				sendval(wrp);
+				if ((res = recvval())) goto error;
 			}
+			notify(req, "_status", 100);
+		error:
 			notify(req, "_result", res);
-			ESP_LOGI("httpd_ws", "Firmware update completed with result %d", res);
+		skip:
 			free(buf);
+			ESP_LOGI("httpd_ws", "Update completed with result %d", res);
 			return 0;
 		}
 		default:

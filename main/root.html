@@ -42,6 +42,7 @@ body {
 #main {
 	padding: 0.4em;
 	margin: 0 auto;
+	min-width: 22em;
 }
 p {
 	margin: 0.5em 0 0 0;
@@ -141,11 +142,16 @@ progress {
 #menu button {
 	float: left;
 	border: none;
-	padding: 1em;
+	padding: 0.8em;
 }
 #menu button.active {
 	background: var(--sel);
 	color: var(--fff);
+}
+#lang {
+	float: right;
+	margin: 0.2em;
+	font-size: 0.6em;
 }
 .tab {
 	border: 1px solid var(--ccc);
@@ -200,73 +206,72 @@ progress {
 <body>
 <div id="main">
 	<div id="menu">
-		<button class="item" id="item1" onclick="opentab(1)">Settings</button>
-		<button class="item" id="item2" onclick="opentab(2)">Music</button>
-		<button class="item" id="item3" onclick="opentab(3)">Firmware</button>
+		<button class="item" id="item1" data-lang="S00" onclick="opentab(1)"></button>
+		<button class="item" id="item2" data-lang="S01" onclick="opentab(2)"></button>
+		<button class="item" id="item3" data-lang="S02" onclick="opentab(3)"></button>
+		<select id="lang" onchange="setlang(value)">@LANG_OPTS@</select>
 	</div>
-	<div class="tab" id="tab1off">Loading settings...</div>
+	<div class="tab" id="tab1off" data-lang="S03"></div>
 	<div class="tab" id="tab1on">
 		<table class="show" id="show"></table>
 		<p>
-			<button onclick="savecfg()">Save</button>
-			<button onclick="resetcfg()">Reset</button>
+			<button data-lang="B00" onclick="savecfg()"></button>
+			<button data-lang="B01" onclick="resetcfg()"></button>
 			<span class="result" id="result1"></span>
 		</p>
 		<hr>
 		<div id="info"></div>
 		<input type="range" min="0" max="2000" value="0" id="throt" oninput="setthrot(value)">
-		<div class="hint">(slide right and left to arm)</div>
+		<div class="hint" data-lang="H00"></div>
 	</div>
-	<div class="tab" id="tab2off">Connecting...</div>
+	<div class="tab" id="tab2off" data-lang="S04"></div>
 	<div class="tab" id="tab2on">
 		<textarea id="music" maxlength="500"></textarea>
-		<div class="hint">(RTTTL format is detected automatically)</div>
-		<input type="range" min="0" max="100" value="25" id="volume" oninput="setvolume(value)">
-		<div class="hint" id="volval">Volume 25%</div>
+		<div class="hint" data-lang="H01"></div>
+		<input type="range" min="0" max="100" id="volume" oninput="setvolume(value)">
+		<div class="hint">
+			<span data-lang="S06"></span>
+			<span id="volval"></span>
+		</div>
 		<p>
-			<button onclick="playmusic()">Play</button>
-			<button onclick="savemusic()">Save</button>
-			<button onclick="clearmusic()">Clear</button>
+			<button data-lang="B02" onclick="playmusic()"></button>
+			<button data-lang="B00" onclick="savemusic()"></button>
+			<button data-lang="B03" onclick="clearmusic()"></button>
 			<span class="result" id="result2"></span>
 		</p>
 		<hr>
-		<div class="hint">
-			An optional number in the beginning sets tempo (BPM);<br>
-			<b>_</b> (underscore) is a pause;<br>
-			<b>cdefgab</b> are low notes;<br>
-			<b>CDEFGAB</b> are high notes;<br>
-			<b>#</b> (pound) after a note makes it a sharp note;<br>
-			<b><i>n</i></b> (number) after a note or pause is a duration: 1 - 1/16 (default), 2 - 1/8, 3 - 3/16, 4 - 1/4, etc.<br>
-			<b>+</b> (plus) enables octave shift;<br>
-			<b>-</b> (minus) disables octave shift;<br>
-		</div>
+		<div class="hint" data-lang="H02"></div>
 	</div>
 	<div class="tab" id="tab3off">
-		<div>Probing bootloader...</div>
-		<div class="hint">(power cycle the ESC now!)</div>
+		<div data-lang="S05"></div>
+		<div class="hint" data-lang="H03"></div>
 	</div>
 	<div class="tab" id="tab3on">
 		<table>
-			<tr><td><label for="image">Image</label></td><td><input type="file" id="image" accept=".bin"></td></tr>
-			<tr><td><label for="boot">Type</label></td><td>
+			<tr><td><label for="image" data-lang="S07"></label></td><td><input type="file" id="image" accept=".bin"></td></tr>
+			<tr><td><label for="boot" data-lang="S08"></label></td><td>
 				<select id="boot">
-					<option value="0">firmware</option>
-					<option value="1">bootloader</option>
+					<option value="0" data-lang="I02"></option>
+					<option value="1" data-lang="I01"></option>
 				</select>
 			</td></tr>
-			<tr><td><label for="wrp">Protection</label></td><td>
+			<tr><td><label for="wrp" data-lang="S09"></label></td><td>
 				<select id="wrp">
 					<option value="0">--</option>
-					<option value="0x33">off</option>
-					<option value="0x44">bootloader</option>
-					<option value="0x55">full</option>
+					<option value="0x33" data-lang="I00"></option>
+					<option value="0x44" data-lang="I01"></option>
+					<option value="0x55" data-lang="I03"></option>
 				</select>
-				<button onclick="setwrp()">Set</button> <span class="result" id="result3"></span>
+				<button onclick="setwrp()" data-lang="B04"></button>
+				<span class="result" id="result3"></span>
 			</td></tr>
-			<tr><td><label for="force">Force</label></td><td><input type="checkbox" id="force"> <span class="hint">(skip integrity check)</span></td></tr>
+			<tr><td><label for="force" data-lang="S10"></label></td><td>
+				<input type="checkbox" id="force">
+				<span class="hint" data-lang="H04"></span>
+			</td></tr>
 		</table>
 		<p>
-			<button id="update" onclick="update()">Update</button>
+			<button id="update" onclick="update()" data-lang="B05"></button>
 			<span class="result" id="result4"></span>
 		</p>
 		<progress id="status" value="0" max="100"></progress>
@@ -279,7 +284,7 @@ progress {
 const bitvals = {};
 
 function bitfield(n) {
-	return function (key, val) {
+	return (key, val) => {
 		const res = [];
 		for (let i = 0; i < n; ++i) {
 			let bit = 1 << i;
@@ -300,49 +305,15 @@ const params = {
 	revdir: false,
 	brushed: false,
 	duty_lock: false,
-	throt_mode: ['forward', 'forward/reverse', 'forward/brake/reverse', 'forward/brake'],
+	throt_mode: ['I04', 'I05', 'I06', 'I07'],
+	throt_rev: ['100%', '75%', '50%', '25%'],
 	throt_cal: false,
-	input_mode: ['servo', 'analog', 'serial', 'iBUS', 'SBUS', 'CRSF'],
+	input_mode: ['I08', 'I09', 'I10', 'iBUS', 'SBUS', 'CRSF'],
 	telem_mode: ['KISS', 'KISS auto', 'iBUS', 'S.Port', 'CRSF'],
-	prot_sens: ['ESC', 'motor', 'both'],
+	prot_sens: ['I11', 'I12', 'I13'],
 	music: '',
 	bec: ['5.5V', '6.5V', '7.4V', '8.4V'],
 	led: bitfield(4),
-};
-
-const hints = {
-	arm: 'wait for zero throttle on startup',
-	damp: 'complementary PWM',
-	revdir: 'reversed motor direction',
-	brushed: 'brushed mode',
-	timing: 'motor timing',
-	sine_range: 'sine startup range',
-	sine_power: 'sine startup power',
-	freq_min: 'minimum PWM frequency',
-	freq_max: 'maximum PWM frequency',
-	duty_min: 'minimum throttle power',
-	duty_max: 'maximum throttle power',
-	duty_spup: 'maximum spin-up power',
-	duty_ramp: 'maximum power @ kERPM',
-	duty_rate: 'duty cycle slew rate',
-	duty_drag: 'drag brake amount',
-	duty_lock: 'active drag brake',
-	throt_set: 'preset throttle',
-	throt_cal: 'automatic throttle calibration',
-	throt_min: 'minimum throttle setpoint',
-	throt_mid: 'middle throttle setpoint',
-	throt_max: 'maximum throttle setpoint',
-	input_chid: 'serial channel ID',
-	telem_phid: 'telemetry physical ID',
-	telem_poles: 'number of motor poles',
-	prot_stall: 'stall protection ERPM',
-	prot_temp: 'temperature threshold',
-	prot_sens: 'temperature sensor',
-	prot_volt: 'low voltage cutoff per cell',
-	prot_cells: 'number of battery cells',
-	prot_curr: 'maximum current',
-	volume: 'sound volume',
-	beacon: 'beacon volume',
 };
 
 const deps = [
@@ -355,8 +326,27 @@ const deps = [
 	},
 ];
 
-let tabnum, tabvis = {};
-let ws, bn, bi, ival, timer, target, throtval, blocked;
+let strs, ws, bn, bi, ival, timer, target, throtval, delayed, blocked, tabnum, tabvis = {};
+
+async function fetchlang(lang) {
+	const data = await fetch(`?${lang}`);
+	return data.json();
+}
+
+async function setlang(lang) {
+	try {
+		strs = await fetchlang(lang);
+		localStorage.setItem('lang', lang);
+		document.getElementById('lang').value = lang;
+		document.querySelectorAll('[data-lang]').forEach(elem => {
+			const key = elem.getAttribute('data-lang');
+			elem.innerHTML = strs[key] || '';
+		});
+	} catch (err) {
+		if (lang == 'en') throw err;
+		setlang('en');
+	}
+}
 
 function send(cmd) {
 	if (ws.readyState != ws.OPEN) return;
@@ -369,18 +359,20 @@ function clearresults() {
 	for (let i = 0; i < elems.length; ++i) elems[i].style.display = 'none';
 }
 
-function setresult(n, ok, msg, cnt) {
+function setresult(n, ok, key, cnt) {
 	clearresults();
 	const elem = document.getElementById('result' + n);
 	const style = elem.style;
 	style.display = 'none';
 	style.color = ok ? 'var(--grn)' : 'var(--red)';
-	elem.innerHTML = msg || '';
+	const str = strs[key];
+	elem.setAttribute('data-lang', str && key || '');
+	elem.innerHTML = str || key || '';
 	style.display = 'inline';
 	if (cnt == null) return;
 	cnt <<= 1;
 	bn = 0;
-	bi = setInterval(function () {
+	bi = setInterval(() => {
 		if (++bn == cnt) clearInterval(bi);
 		else style.display = bn & 1 ? 'none' : 'inline';
 	}, 200);
@@ -406,15 +398,20 @@ function opentab(n) {
 	clearTimeout(timer);
 	switch (n) {
 		case 1:
-			ival = setInterval(function () {send('info\n')}, 500);
+			if (delayed) {
+				timer = setTimeout(() => {delayed = null, opentab(1)}, 2000);
+				break;
+			}
+			ival = setInterval(() => {send('info\n')}, 500);
 			send('info\n');
 			send('show\n');
 			resettimer(1);
 			break;
 		case 3:
-			ival = setInterval(function () {blocked || send('_probe\n')}, 300);
+			ival = setInterval(() => {blocked || send('_probe\n')}, 300);
 			send('_probe\n');
 			resettimer(3);
+			delayed = true;
 			break;
 		default:
 			showtab(n);
@@ -441,7 +438,7 @@ function hidetab(n) {
 function resettimer(n) {
 	if (n && n != tabnum) return;
 	clearTimeout(timer);
-	timer = setTimeout(function() {
+	timer = setTimeout(() => {
 		ws.onopen = null;
 		ws.onmessage = null;
 		ws.onclose = null;
@@ -461,7 +458,11 @@ function getfield(key, val) {
 		case 'object':
 			const res = [];
 			res.push(`<select id="field_${key}" onchange="setparam('${key}', value)">`);
-			for (let i = 0; i < data.length; ++i) res.push(`<option value="${i}"${val == i ? ' selected' : ''}>${data[i]}</option>`);
+			for (let i = 0; i < data.length; ++i) {
+				const key = data[i];
+				const str = strs[key];
+				res.push(`<option value="${i}"${str ? ` data-lang="${key}"`: ''}"${val == i ? ' selected' : ''}>${str || key}</option>`);
+			}
 			res.push('</select>');
 			return res.join('');
 		case 'function':
@@ -471,12 +472,12 @@ function getfield(key, val) {
 	}
 }
 
-function getmsg(res) {
+function geterror(res) {
 	switch (res) {
-		case '0':  return 'Update successful';
-		case '1':  return 'Flash error (disable protection)';
-		case '-1': return 'Connection error';
-		default:   return `Unknown error ${res}`;
+		case '0':  return 'S14';
+		case '1':  return 'S15';
+		case '-1': return 'S16';
+		default:   return `${strs['S17']} ${res}`;
 	}
 }
 
@@ -486,7 +487,7 @@ function checkdeps() {
 		const map = deps[i];
 		for (key in map) {
 			const elem = document.getElementById('field_' + key);
-			if (elem) map[key].forEach(function (key) {res[key] |= i ^ elem.checked});
+			if (elem) map[key].forEach(key => {res[key] |= i ^ elem.checked});
 		}
 	}
 	for (key in res) {
@@ -518,25 +519,24 @@ function handler1(data, key, val) { // 'get', 'set'
 }
 
 function handler2(ok) { // 'save', 'reset'
-	setresult(tabnum, ok, ok ? 'Done!' : 'Failed!', 3);
+	setresult(tabnum, ok, ok ? 'S18' : 'S19', 3);
 	send('show\n');
 }
 
 const handlers = {
-	info: function (data) {
+	info: (data) => {
 		if (!data) return;
 		document.getElementById('info').innerHTML = data.join('<br>');
 		resettimer(1);
 	},
-	show: function (data) {
+	show: (data) => {
 		if (!data) return;
 		const res = [];
 		for (let i = 0; i < data.length; ++i) {
 			const [key, val] = data[i].split(': ');
-			const hint = hints[key];
 			res.push('<tr>');
 			res.push(`<td><label for="field_${key}" id="label_${key}">${key}</label></td>`);
-			res.push(`<td class="min">${getfield(key, val)}${hint ? ` <span class="hint">(${hint})</span>` : ''}</td>`);
+			res.push(`<td class="min">${getfield(key, val)} <span class="hint" data-lang="${key}">${strs[key] || ''}</span></td>`);
 			res.push('</tr>');
 		}
 		document.getElementById('show').innerHTML = res.join('');
@@ -547,47 +547,47 @@ const handlers = {
 	set: handler1,
 	save: handler2,
 	reset: handler2,
-	throt: function (ok, val) {
+	throt: (ok, val) => {
 		if (!ok) return;
 		if (throtval == val) throtval = null;
 		else send(`throt ${throtval}\n`);
 	},
-	_probe: function (ok) {
+	_probe: (ok) => {
 		if (!ok) hidetab(3);
 		else if (!tabvis[3]) send('_info\n');
 		resettimer(3);
 	},
-	_info: function (data) {
+	_info: (data) => {
 		if (!data) return;
 		const res = [];
 		const pins = ['PA2', 'PA6', 'PB4'];
 		const [rev, pin, mcu] = data[0].split(' ');
 		target = data[1] && data[2];
-		res.push(pin != 0 ? `Bootloader revision ${rev} [IO:${pins[pin - 1] || pin}, MCU:${mcu}]` : `Bootloader revision ${rev}`);
-		res.push(target ? `Firmware revision ${data[1]} [${data[2]}]` : 'Firmware not installed!');
+		res.push(`<span data-lang="S11">${strs['S11']}</span> ${rev}` + (pin != 0 ? ` [IO:${pins[pin - 1] || pin}, MCU:${mcu}]` : ''));
+		res.push(target ? `<span data-lang="S12">${strs['S12']}</span> ${data[1]} [${data[2]}]` : `<span data-lang="S13">${strs['S13']}</span>`);
 		document.getElementById('status').value = 0;
 		document.getElementById('fwinfo').innerHTML = res.join('<br>');
 		showtab(3);
 	},
-	_setwrp: function (ok) {
-		setresult(3, ok, ok ? 'Done!' : 'Failed!', 3);
+	_setwrp: (ok) => {
+		setresult(3, ok, ok ? 'S18' : 'S19', 3);
 		if (ok) document.getElementById('wrp').value = 0;
 	},
-	_update: function (ok) {
+	_update: (ok) => {
 		if (!ok) {
-			setresult(4, null, 'Failed to initiate update!', 3);
+			setresult(4, null, 'S20', 3);
 			return;
 		}
-		setresult(4, true, "Updating...", 0);
+		setresult(4, true, 'S21', 0);
 		blocked = true;
 	},
-	_status: function (_, val) {
+	_status: (_, val) => {
 		document.getElementById('status').value = val;
 		resettimer(3);
 	},
-	_result: function (_, res) {
+	_result: (_, res) => {
 		blocked = null;
-		setresult(4, res == 0, getmsg(res));
+		setresult(4, res == 0, geterror(res));
 		send('_info\n');
 		if (res != 0) return;
 		document.getElementById('image').value = '';
@@ -600,19 +600,19 @@ const handlers = {
 function connect() {
 	resettimer();
 	ws = new WebSocket('ws://192.168.4.1/ws');
-	ws.onopen = function () {
+	ws.onopen = () => {
 		throtval = null;
 		blocked = null;
 		opentab();
 	}
-	ws.onmessage = function (msg) {
+	ws.onmessage = (msg) => {
 		const data = msg.data.split('\n');
 		const args = data.shift().split(' ');
 		const cmd = args.shift();
 		data.pop(); // Pop empty string
 		handlers[cmd](data.length && data.pop() == 'OK' ? data : null, ...args);
 	}
-	ws.onclose = function () {
+	ws.onclose = () => {
 		hidetab();
 		resettimer();
 	}
@@ -630,7 +630,8 @@ function setthrot(val) {
 }
 
 function setvolume(val) {
-	document.getElementById('volval').innerHTML = `Volume ${val}%`;
+	document.getElementById('volume').value = val;
+	document.getElementById('volval').innerHTML = `${val}%`;
 }
 
 function savecfg() {
@@ -735,15 +736,13 @@ function savemusic() {
 
 function clearmusic() {
 	document.getElementById('music').value = '';
-	const elem = document.getElementById('volume');
-	elem.value = 25;
-	elem.oninput();
+	setvolume(25);
 }
 
 function setwrp() {
 	if (blocked) return;
 	const wrp = document.getElementById('wrp').value;
-	if (wrp == 0) setresult(3, null, 'Not selected!', 3);
+	if (wrp == 0) setresult(3, null, 'S22', 3);
 	else send(`_setwrp ${wrp}\n`);
 }
 
@@ -751,31 +750,30 @@ function update() {
 	if (blocked) return;
 	const file = document.getElementById('image').files[0];
 	if (!file) {
-		setresult(4, null, 'Image not selected!', 3);
+		setresult(4, null, 'S23', 3);
 		return;
 	}
 	const fr = new FileReader();
-	fr.onload = function () {
+	fr.onload = () => {
 		const data = fr.result;
 		const size = data.byteLength;
 		const boot = document.getElementById('boot').value;
 		const wrp = document.getElementById('wrp').value;
 		const force = document.getElementById('force').checked;
 		try {
-			if (!size) throw 'Image contains no data!';
-			if (boot != 0) {
-				if (size > 4096) throw 'Image too big!';
-				if (!force) throw 'Check <u>Force</u> to confirm!';
-			} else if (!force) {
+			if (!size) throw 'S24';
+			if (size > (boot != 0 ? 4096 : 262144)) throw 'S25';
+			if (!force) {
+				if (boot != 0) throw 'S26';
 				const info = new Uint8Array(data.slice(0, 20));
-				if (info[0] != 0xea || info[1] != 0x32) throw 'Invalid image!';
+				if (info[0] != 0xea || info[1] != 0x32) throw 'S27';
 				let i, j = target.length;
 				for (i = 0; i < j && target.charCodeAt(i) == info[i + 4]; ++i);
-				if (i < j || info[i + 4] && j) throw 'Target mismatch!';
+				if (i < j || info[i + 4] && j) throw 'S28';
 			}
 			setresult(4);
 			send(`_update ${size} ${boot} ${wrp}\n`);
-			send(data);
+			for (let pos = 0; pos < size; pos += 32768) send(data.slice(pos, pos + 32768));
 		} catch (err) {
 			if (typeof err != 'string') throw err;
 			setresult(4, null, err, 3);
@@ -784,6 +782,8 @@ function update() {
 	fr.readAsArrayBuffer(file);
 }
 
+setlang(localStorage.getItem('lang') || navigator.language.substring(0, 2) || 'en');
+setvolume(25);
 opentab(1);
 </script>
 </body>
