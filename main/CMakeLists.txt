@@ -1,5 +1,5 @@
 idf_component_register(SRCS main.c PRIV_REQUIRES espressif__mdns)
-set(lang_map en:EN de:DE ru:РУ zh:中)
+set(lang_map en:EN fr:FR de:DE ru:РУ zh:中)
 string(REGEX REPLACE "([a-z][a-z]):([^;]+)" "XX(\\1)" LANG_LIST "${lang_map}")
 string(REGEX REPLACE "([a-z][a-z]):([^;]+)" "<option value=\"\\1\">\\2</option>" LANG_OPTS "${lang_map}")
 list(JOIN LANG_LIST " " LANG_LIST)
